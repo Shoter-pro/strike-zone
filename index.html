@@ -47,6 +47,13 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-f
 .weaponCard button{width:100%;font-size:14px;padding:10px;margin-top:10px}
 .weaponCard.selected{border:2px solid #ffd84d}
 @media(max-width:700px){#gameTitle{font-size:40px;letter-spacing:5px;top:22px}#homeStart{min-width:250px;font-size:20px;padding:14px 24px}#homeLeft button,#homeRight button{min-width:145px;font-size:16px;padding:12px 16px}#homeLeft{left:12px;bottom:18px;gap:8px}#homeRight{right:12px;bottom:18px;gap:8px}#homeLayout:after{display:none}.weaponGrid{grid-template-columns:1fr 1fr}}
+
+@media(max-width:700px){
+  #shopModal{width:94vw;max-height:88vh;padding:18px;margin:0 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #shopModal .weaponGrid{grid-template-columns:1fr;gap:10px;}
+  #shopModal .weaponCard{min-height:0;padding:12px;}
+  #shopModal>button{position:sticky;bottom:0;z-index:3;margin-top:14px;width:100%;background:#242424;}
+}
 #screen{position:fixed;inset:0;z-index:50;background:radial-gradient(circle,#3b4345,#050505 70%);color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
 #screen.gameover{background:radial-gradient(circle,rgba(190,0,0,.96),rgba(55,0,0,.99) 65%,#090000)}
 #screen.complete{background:radial-gradient(circle,rgba(25,125,65,.96),rgba(2,35,18,.99) 65%,#020805)}#screen.gameover,#screen.complete{display:flex!important}
@@ -105,7 +112,7 @@ button:hover{background:#444}
 .questXP{color:#ffd84d;font-weight:bold;white-space:nowrap}
 #dailyQuestInfo{text-align:center;color:#aaa;margin-bottom:15px}
 @media(max-width:700px){.armorGrid{grid-template-columns:1fr 1fr}#gameTitle{font-size:36px;top:18px}.home button{min-width:125px}#homeLeft{left:12px;bottom:12px}#homeRight{right:12px;bottom:12px}#homeStart{top:45%;font-size:18px}.armorGrid{grid-template-columns:1fr 1fr}}
-#shopModal{display:none;max-width:760px;width:92%;padding:28px;background:rgba(8,12,12,.97);border:1px solid #68706d;box-shadow:0 0 35px #000}
+#shopModal{display:none;max-width:760px;width:92%;max-height:86vh;overflow-y:auto;overflow-x:hidden;padding:28px;background:rgba(8,12,12,.97);border:1px solid #68706d;box-shadow:0 0 35px #000;overscroll-behavior:contain}
 #shopModal h1{font-size:36px;margin-bottom:8px}
 #modalCoins{font-size:20px;margin:8px 0 18px;color:#ffd84d;font-weight:bold}
 #mobileControls{display:none;position:fixed;inset:0;z-index:25;pointer-events:none}
@@ -1023,7 +1030,7 @@ function init(){
   scene=new THREE.Scene();
   scene.background=new THREE.Color(0x91a8b2);
   scene.fog=new THREE.Fog(0x91a8b2,35,185);
-  camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.05,500);
+  camera=new THREE.PerspectiveCamera(82,innerWidth/innerHeight,.05,500);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:false});
   renderer.setClearColor(0x91a8b2,1);
   renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -1193,7 +1200,7 @@ function returnToHome(){
   keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=false;
   reloading=false;
   weaponAim=0;
-  if(camera){camera.fov=76;camera.updateProjectionMatrix();}
+  if(camera){camera.fov=82;camera.updateProjectionMatrix();}
   for(const e of enemies){
     scene.remove(e);
     if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();
@@ -1604,14 +1611,14 @@ function lockMouseOnComputer(){
   }
 }
 function startRound(){try{
-  if(isMobileDevice()){ document.body.classList.add("mobile-phone"); lockLandscapeOnPhone(); }if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=76;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();
+  if(isMobileDevice()){ document.body.classList.add("mobile-phone"); lockLandscapeOnPhone(); }if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=82;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();
   // Der Start-Button ist eine echte Benutzeraktion: auf Computern wird hier sofort gelockt.
   lockMouseOnComputer();
 }catch(err){console.error("STRIKE ZONE Startfehler",err);alert("Das Spiel konnte nicht gestartet werden: "+(err&&err.message?err.message:"Unbekannter Fehler"));}}
 // Falls der Browser den Lock beim Start ablehnt, sperrt ein Klick ins Spielfeld sofort.
 document.addEventListener("click",()=>{ lockMouseOnComputer(); });
 
-window.addEventListener("wheel",e=>{if(!running)return; camera.fov=THREE.MathUtils.clamp(camera.fov+(e.deltaY>0?4:-4),16,76); weaponAim=THREE.MathUtils.clamp((76-camera.fov)/60,0,1); camera.updateProjectionMatrix();},{passive:true});
+window.addEventListener("wheel",e=>{if(!running)return; camera.fov=THREE.MathUtils.clamp(camera.fov+(e.deltaY>0?4:-4),42,82); weaponAim=THREE.MathUtils.clamp((82-camera.fov)/40,0,1); camera.updateProjectionMatrix();},{passive:true});
 
 addEventListener("resize",()=>{
   if(!camera||!renderer)return;
