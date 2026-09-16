@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>StrikeZone</title>
 <style>
 *{box-sizing:border-box}
@@ -114,16 +114,16 @@ body.mobile-phone #portraitOverlay{display:none}
 @media (orientation:portrait) and (max-width:1000px){body.mobile-phone #portraitOverlay{display:flex}}
 #portraitOverlay{position:fixed;inset:0;z-index:100;background:#080808;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:bold;font-size:22px;flex-direction:column;gap:12px}
 #portraitOverlay .rotateIcon{font-size:56px;line-height:1}
-#joy{position:absolute;left:22px;bottom:25px;width:130px;height:130px;-webkit-user-select:none;user-select:none;border:2px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.2);pointer-events:auto;touch-action:none}
-#joyKnob{position:absolute;left:42px;top:42px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.55)}
+#joy{position:absolute;left:18px;bottom:18px;width:105px;height:105px;-webkit-user-select:none;user-select:none;border:2px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.2);pointer-events:auto;touch-action:none}
+#joyKnob{position:absolute;left:34px;top:34px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.55)}
 #lookPad{position:absolute;left:35%;right:0;top:0;bottom:0;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
 #fireBtn,#jumpBtn,#reloadBtn{position:absolute;pointer-events:auto;margin:0;border-radius:50%;background:rgba(20,20,20,.65);border:2px solid rgba(255,255,255,.7);font-weight:bold}
-#fireBtn{right:22px;bottom:32px;width:92px;height:92px}
-#jumpBtn{right:125px;bottom:48px;width:64px;height:64px;font-size:12px}
-#reloadBtn{right:22px;bottom:138px;width:52px;height:52px}
+#fireBtn{right:18px;bottom:24px;width:72px;height:72px;font-size:12px}
+#jumpBtn{right:102px;bottom:38px;width:54px;height:54px;font-size:10px}
+#reloadBtn{right:18px;bottom:110px;width:44px;height:44px;font-size:11px}
 @media (max-width:700px){
   #info{display:none}
-  #ammo{right:12px;bottom:12px;font-size:24px}
+  #ammo{right:10px;bottom:8px;font-size:18px}
   #healthBox{left:12px;bottom:12px;width:190px}
   #healthText{font-size:14px}
   #healthBar{height:16px}
@@ -161,6 +161,15 @@ body.mobile-phone #portraitOverlay{display:none}
 .xpBig{font-size:28px;font-weight:800;margin:8px 0 18px}.progress{height:12px;background:#18201c;border-radius:99px;overflow:hidden;border:1px solid #344039}.progress>div{height:100%;width:0%;background:#8aa895;transition:width .25s}
 .questDone{border-color:#88aa92;opacity:.7}.questProgress{font-size:18px;font-weight:900;color:#9fd6ff;margin:8px 0}.questReward{color:#a9cdb3;font-weight:700}
 .featureModal button{margin-top:18px}
+</style>
+
+<style>
+html,body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+@media (max-width:700px){
+  #mobileControls,#mobileControls *{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #joy:after{content:"BEWEGEN";position:absolute;left:0;right:0;bottom:7px;text-align:center;font-size:9px;font-weight:bold;color:rgba(255,255,255,.8);pointer-events:none}
+  #lookPad:after{content:"WISCHEN";position:absolute;right:18px;top:14px;font-size:9px;font-weight:bold;color:rgba(255,255,255,.45);pointer-events:none}
+}
 </style>
 </head>
 <body>
@@ -1527,6 +1536,20 @@ window.addEventListener("keydown",e=>{
 });
 document.addEventListener("keyup",e=>keys[e.code]=false);
 
+
+// Mobile: prevent browser double-tap zoom and clear stuck touch controls.
+(function preventMobileZoom(){
+  let lastTouch=0;
+  document.addEventListener("touchend",function(e){
+    const now=Date.now();
+    if(now-lastTouch<320) e.preventDefault();
+    lastTouch=now;
+  },{passive:false});
+  document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});
+  document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});
+  document.addEventListener("gestureend",function(e){e.preventDefault();},{passive:false});
+})();
+
 // Mobile controls
 (function setupMobile(){
   const joy=$("joy"), knob=$("joyKnob"), look=$("lookPad");
@@ -1534,7 +1557,7 @@ document.addEventListener("keyup",e=>keys[e.code]=false);
   let joyId=null, lookId=null, lastX=0,lastY=0;
   function joyUpdate(t){
     const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
-    let dx=t.clientX-cx,dy=t.clientY-cy; const max=42; const len=Math.hypot(dx,dy);
+    let dx=t.clientX-cx,dy=t.clientY-cy; const max=34; const len=Math.hypot(dx,dy);
     if(len>max){dx=dx/len*max;dy=dy/len*max;}
     knob.style.transform=`translate(${dx}px,${dy}px)`;
     keys.KeyA=dx<-12; keys.KeyD=dx>12; keys.KeyW=dy<-12; keys.KeyS=dy>12;
@@ -1542,7 +1565,7 @@ document.addEventListener("keyup",e=>keys[e.code]=false);
   joy.addEventListener("pointerdown",e=>{joyId=e.pointerId;joy.setPointerCapture(e.pointerId);joyUpdate(e)});
   joy.addEventListener("pointermove",e=>{if(e.pointerId===joyId)joyUpdate(e)});
   function joyEnd(e){if(e.pointerId!==joyId)return;joyId=null;knob.style.transform="translate(0,0)";keys.KeyA=keys.KeyD=keys.KeyW=keys.KeyS=false;}
-  joy.addEventListener("pointerup",joyEnd);joy.addEventListener("pointercancel",joyEnd);
+  joy.addEventListener("pointerup",joyEnd);joy.addEventListener("pointercancel",joyEnd);joy.addEventListener("lostpointercapture",()=>{joyId=null;knob.style.transform="translate(0,0)";keys.KeyA=keys.KeyD=keys.KeyW=keys.KeyS=false;});
   look.addEventListener("pointerdown",e=>{lookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId)});
   look.addEventListener("pointermove",e=>{if(e.pointerId!==lookId||!running)return; yaw-=(e.clientX-lastX)*.009; pitch-=(e.clientY-lastY)*.007; pitch=Math.max(-1.35,Math.min(1.35,pitch)); camera.rotation.set(pitch-(recoil/.07)*.018,yaw,0,"YXZ");lastX=e.clientX;lastY=e.clientY;});
   const endLook=e=>{if(e.pointerId===lookId)lookId=null}; look.addEventListener("pointerup",endLook);look.addEventListener("pointercancel",endLook);
