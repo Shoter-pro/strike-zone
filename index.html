@@ -109,12 +109,9 @@ button:hover{background:#444}
 #shopModal h1{font-size:36px;margin-bottom:8px}
 #modalCoins{font-size:20px;margin:8px 0 18px;color:#ffd84d;font-weight:bold}
 #mobileControls{display:none;position:fixed;inset:0;z-index:25;pointer-events:none}
-#joy{position:absolute;left:22px;bottom:25px;width:130px;height:130px;border:2px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.2);pointer-events:auto;touch-action:none}
+#joy{position:absolute;left:22px;bottom:25px;width:130px;height:130px;-webkit-user-select:none;user-select:none;border:2px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.2);pointer-events:auto;touch-action:none}
 #joyKnob{position:absolute;left:42px;top:42px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.55)}
-#lookPad{position:absolute;left:35%;right:0;top:0;bottom:0;pointer-events:auto;touch-action:none;z-index:1}
-#joy,#fireBtn,#jumpBtn,#reloadBtn{z-index:3}
-#fireBtn{touch-action:none;-webkit-user-select:none;user-select:none}
-#joy{-webkit-user-select:none;user-select:none}
+#lookPad{position:absolute;left:35%;right:0;top:0;bottom:0;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
 #fireBtn,#jumpBtn,#reloadBtn{position:absolute;pointer-events:auto;margin:0;border-radius:50%;background:rgba(20,20,20,.65);border:2px solid rgba(255,255,255,.7);font-weight:bold}
 #fireBtn{right:22px;bottom:32px;width:92px;height:92px}
 #jumpBtn{right:125px;bottom:48px;width:64px;height:64px;font-size:12px}
@@ -1485,6 +1482,21 @@ document.addEventListener("mousemove",e=>{
 });
 
 window.addEventListener("keydown",e=>{
+  // Shift-Lock nur am Computer: Shift schaltet die Maussteuerung an/aus.
+  // Auf Handys wird Shift komplett ignoriert.
+  const isMobileDevice = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 0 && window.matchMedia && window.matchMedia('(pointer: coarse)').matches && innerWidth < 1000);
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){
+    if(!isMobileDevice && running && !e.repeat && renderer?.domElement){
+      e.preventDefault();
+      if(document.pointerLockElement===renderer.domElement){
+        if(document.exitPointerLock) document.exitPointerLock();
+      }else if(renderer.domElement.requestPointerLock){
+        renderer.domElement.requestPointerLock();
+      }
+    }
+    return;
+  }
   keys[e.code]=true;
   if(e.code==="Space"){
     e.preventDefault();
@@ -1522,24 +1534,24 @@ document.addEventListener("keyup",e=>keys[e.code]=false);
   $("reloadBtn").addEventListener("pointerdown",e=>{e.preventDefault();reload()});
 })();
 
-// Mobile-only camera/look behavior. The laptop controls stay unchanged.
-(function improveMobileTouch(){
-  const mobile=window.matchMedia("(max-width:700px)");
-  if(!mobile.matches)return;
-  document.body.style.touchAction="none";
-  document.documentElement.style.touchAction="none";
-  const look=$("lookPad");
-  if(look){
-    look.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
-    look.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+function isMobileDevice(){
+  return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 0 && window.matchMedia && window.matchMedia('(pointer: coarse)').matches && innerWidth < 1000);
+}
+function lockMouseOnComputer(){
+  if(!running || isMobileDevice()) return;
+  const el=renderer && renderer.domElement;
+  if(el && el.requestPointerLock && document.pointerLockElement!==el){
+    try{ el.requestPointerLock(); }catch(err){ console.warn('Pointer Lock:',err); }
   }
-  const fire=$("fireBtn");
-  if(fire){
-    fire.addEventListener("touchstart",e=>{e.preventDefault();e.stopPropagation();if(running){initAudio();shoot();}},{passive:false});
-  }
-})();
+}
+function startRound(){try{if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=76;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();
+  // Der Start-Button ist eine echte Benutzeraktion: auf Computern wird hier sofort gelockt.
+  lockMouseOnComputer();
+}catch(err){console.error("STRIKE ZONE Startfehler",err);alert("Das Spiel konnte nicht gestartet werden: "+(err&&err.message?err.message:"Unbekannter Fehler"));}}
+// Falls der Browser den Lock beim Start ablehnt, sperrt ein Klick ins Spielfeld sofort.
+document.addEventListener("click",()=>{ lockMouseOnComputer(); });
 
-function startRound(){try{if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=76;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();renderer.domElement.requestPointerLock();}catch(err){console.error("STRIKE ZONE Startfehler",err);alert("Das Spiel konnte nicht gestartet werden: "+(err&&err.message?err.message:"Unbekannter Fehler"));}}
 window.addEventListener("wheel",e=>{if(!running)return; camera.fov=THREE.MathUtils.clamp(camera.fov+(e.deltaY>0?4:-4),16,76); weaponAim=THREE.MathUtils.clamp((76-camera.fov)/60,0,1); camera.updateProjectionMatrix();},{passive:true});
 
 addEventListener("resize",()=>{
