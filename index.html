@@ -109,6 +109,11 @@ button:hover{background:#444}
 #shopModal h1{font-size:36px;margin-bottom:8px}
 #modalCoins{font-size:20px;margin:8px 0 18px;color:#ffd84d;font-weight:bold}
 #mobileControls{display:none;position:fixed;inset:0;z-index:25;pointer-events:none}
+body.mobile-phone #mobileControls{display:block}
+body.mobile-phone #portraitOverlay{display:none}
+@media (orientation:portrait) and (max-width:1000px){body.mobile-phone #portraitOverlay{display:flex}}
+#portraitOverlay{position:fixed;inset:0;z-index:100;background:#080808;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:bold;font-size:22px;flex-direction:column;gap:12px}
+#portraitOverlay .rotateIcon{font-size:56px;line-height:1}
 #joy{position:absolute;left:22px;bottom:25px;width:130px;height:130px;-webkit-user-select:none;user-select:none;border:2px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.2);pointer-events:auto;touch-action:none}
 #joyKnob{position:absolute;left:42px;top:42px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.55)}
 #lookPad{position:absolute;left:35%;right:0;top:0;bottom:0;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -129,6 +134,17 @@ button:hover{background:#444}
   #crosshair:before{height:18px;left:8px}
   #crosshair:after{width:18px;top:8px}
   h1{font-size:38px}
+}
+
+
+/* Handy: Steuerung bleibt auch im Querformat sichtbar. */
+@media (pointer: coarse){
+  #mobileControls{display:block}
+  #joy{width:128px;height:128px;left:18px;bottom:18px}
+  #joyKnob{left:41px;top:41px}
+  #fireBtn{right:18px;bottom:18px;width:88px;height:88px}
+  #jumpBtn{right:118px;bottom:32px;width:62px;height:62px}
+  #reloadBtn{right:18px;bottom:120px;width:50px;height:50px}
 }
 
 /* Ruestung / Pass / Quests */
@@ -174,6 +190,7 @@ Mausrad – Zoom
 </div>
 <div id="damage"></div>
 <button id="shopBtn" onclick="openShop()">WAFFENSHOP</button>
+<div id="portraitOverlay"><div class="rotateIcon">↻</div><div>Bitte drehe dein Handy ins <b>Querformat</b>.</div><div style="font-size:14px;font-weight:normal;opacity:.75">STRIKE ZONE wird im Querformat gespielt.</div></div>
 <div id="mobileControls">
   <div id="joy"><div id="joyKnob"></div></div>
   <div id="lookPad"></div>
@@ -1538,6 +1555,24 @@ function isMobileDevice(){
   return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0 && window.matchMedia && window.matchMedia('(pointer: coarse)').matches && innerWidth < 1000);
 }
+if(isMobileDevice()) document.body.classList.add("mobile-phone");
+
+function lockLandscapeOnPhone(){
+  if(!isMobileDevice()) return;
+  try{
+    if(document.documentElement.requestFullscreen && !document.fullscreenElement){
+      const p=document.documentElement.requestFullscreen();
+      if(p && p.catch) p.catch(()=>{});
+    }
+  }catch(e){}
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      const p=screen.orientation.lock("landscape");
+      if(p && p.catch) p.catch(()=>{});
+    }
+  }catch(e){}
+}
+
 function lockMouseOnComputer(){
   if(!running || isMobileDevice()) return;
   const el=renderer && renderer.domElement;
@@ -1545,7 +1580,8 @@ function lockMouseOnComputer(){
     try{ el.requestPointerLock(); }catch(err){ console.warn('Pointer Lock:',err); }
   }
 }
-function startRound(){try{if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=76;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();
+function startRound(){try{
+  if(isMobileDevice()){ document.body.classList.add("mobile-phone"); lockLandscapeOnPhone(); }if(!gameInitialized){init();gameInitialized=true;}initAudio();stopFootstep();for(const e of enemies){scene.remove(e);if(e.userData&&e.userData.healthDiv)e.userData.healthDiv.remove();}enemies=[];for(const b of enemyShots)scene.remove(b);enemyShots=[];spawnEnemies(10);weaponAim=0;camera.fov=76;camera.updateProjectionMatrix();ammo=currentWeapon().ammo;health=100;shield=armorProtection();score=0;roundGold=0;updateHUD();updateXPUI();refreshDailyQuests();$("screen").style.display="none";running=true;updateXPUI();buildWeaponView();
   // Der Start-Button ist eine echte Benutzeraktion: auf Computern wird hier sofort gelockt.
   lockMouseOnComputer();
 }catch(err){console.error("STRIKE ZONE Startfehler",err);alert("Das Spiel konnte nicht gestartet werden: "+(err&&err.message?err.message:"Unbekannter Fehler"));}}
