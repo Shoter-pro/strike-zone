@@ -129,8 +129,8 @@ body.mobile-phone #portraitOverlay{display:none}
 #jumpBtn{right:102px;bottom:38px;width:54px;height:54px;font-size:10px}
 #reloadBtn{right:18px;bottom:110px;width:44px;height:44px;font-size:11px}
 @media (max-width:700px){
-  #info{display:none}
-  #ammo{right:10px;bottom:8px;font-size:18px}
+  #info{display:none !important}
+  #ammo{right:2px;bottom:1px;font-size:18px}
   #healthBox{left:12px;bottom:12px;width:190px}
   #healthText{font-size:14px}
   #healthBar{height:16px}
@@ -234,7 +234,7 @@ Mausrad – Zoom
     <h1>WAFFENSHOP</h1>
     <div id="modalCoins">GOLD: 0 🪙</div>
     <div class="weaponGrid" id="modalWeaponGrid"></div>
-    <button onclick="closeShop()">ZURÜCK ZUM SPIEL</button>
+    <button onclick="closeShop()">ZURÜCK</button>
   </div>
   <div id="armorModal" class="featureModal">
     <h1>RÜSTUNG</h1><p class="sub">Hier kannst du deine freigeschalteten Rüstungen auswählen. Sie sind nicht kaufbar – du schaltest sie über den Pass frei.</p>
@@ -335,7 +335,7 @@ const QUESTS={
   kill10:{name:"Kille 10 Gegner",desc:"Eliminiere insgesamt 10 Gegner – die Kills zählen über mehrere Runden."},
   dodge:{name:"Weiche einem Schuss aus",desc:"Lass einen gegnerischen Schuss knapp an dir vorbeifliegen."},
   jump:{name:"Springe auf einen Block",desc:"Springe auf die Oberseite eines Blocks und lande dort."},
-  shoot:{name:"Treffe einen Gegner",desc:"Triff einen Gegner mit deiner Waffe."},
+  shoot:{name:"Schiesse 10-mal",desc:"Schiesse insgesamt 10-mal mit deiner aktuellen Waffe."},
   move:{name:"Bewege dich 30 Sekunden",desc:"Bewege dich 30 Sekunden lang ohne stehen zu bleiben."}
 };
 // Für jede Waffe gibt es eine eigene Schuss-Quest. Jeden Tag wird zufällig eine davon ausgewählt.
@@ -394,6 +394,10 @@ function completeQuest(type){
       continue;
     }
     // Fortschrittsquests dürfen erst bei 10/10 abgeschlossen werden.
+    if(type==="shoot" && totalQuestShots<10){
+      remaining.push(id);
+      continue;
+    }
     if(type==="kill10" && totalQuestKills<10){
       remaining.push(id);
       continue;
@@ -415,6 +419,7 @@ function completeQuest(type){
   return changed?completedName:"";
 }
 function questProgress(type){
+  if(type==="shoot")return Math.min(10,totalQuestShots);
   if(type==="kill10")return Math.min(10,totalQuestKills);
   if(type.startsWith("weapon10:")){
     const weapon=type.split(":")[1];
@@ -467,7 +472,7 @@ function renderPass(){
 function renderQuests(){
   refreshDailyQuests();const g=$("questGrid");if(!g)return;g.innerHTML="";
   if(!activeQuests.length){g.innerHTML='<p style="text-align:center;color:#aaa">Neue Quests kommen täglich um 10:00 Uhr.</p>';return;}
-  activeQuests.forEach(id=>{const type=questType(id),q=QUESTS[type];if(!q)return;const done=!!questCompleted[id];const progress=questProgress(type);const progressText=(type==="kill10"||type.startsWith("weapon10:"))?`<div class="questProgress">${progress} / 10</div>`:"";const c=document.createElement("div");c.className="questCard "+(done?"questDone":"");c.innerHTML=`<h3>${q.name}</h3><p>${q.desc}</p>${progressText}<div class="questReward">${done?"✓ ERLEDIGT":"+25 XP"}</div>`;g.appendChild(c);});
+  activeQuests.forEach(id=>{const type=questType(id),q=QUESTS[type];if(!q)return;const done=!!questCompleted[id];const progress=questProgress(type);const progressText=(type==="shoot"||type==="kill10"||type.startsWith("weapon10:"))?`<div class="questProgress">${progress} / 10</div>`:"";const c=document.createElement("div");c.className="questCard "+(done?"questDone":"");c.innerHTML=`<h3>${q.name}</h3><p>${q.desc}</p>${progressText}<div class="questReward">${done?"✓ ERLEDIGT":"+25 XP"}</div>`;g.appendChild(c);});
 }
 function updateXPUI(){const el=$("xpHud");if(el)el.style.display="none";const z=$("zoomHint");if(z)z.style.display=running?"block":"none";}
 function showRoundUnlock(t){const el=$("roundUnlock");if(!el)return;el.textContent=t;el.style.opacity=1;clearTimeout(showRoundUnlock.t);showRoundUnlock.t=setTimeout(()=>el.style.opacity=0,2600);}
@@ -478,13 +483,9 @@ function openPass(){running=false;stopFootstep();document.exitPointerLock?.();op
 function closeFeature(){$("armorModal").style.display="none";$('questsModal').style.display="none";$('passModal').style.display="none";$('screen').style.display="flex";$('start').style.display="block";renderShop();}
 
 function resetAllForTesting(){
-  // Nur für Tests: setzt wirklich den kompletten Spielstand zurück – inklusive Gold.
-  localStorage.removeItem("strikezoneWeapon");
-  localStorage.removeItem("strikezoneOwned");
-  localStorage.removeItem("strikezoneCoins");
+  // Nur Tests: Quests + Rüstungen zurücksetzen. Waffen und Gold bleiben erhalten.
   localStorage.removeItem("strikezoneXP");
   localStorage.removeItem("strikezoneArmor");
-  localStorage.removeItem("strikezoneMap");
   localStorage.removeItem("strikezoneQuests");
   localStorage.removeItem("strikezoneQuestDone");
   localStorage.removeItem("strikezoneQuestDay");
@@ -495,8 +496,33 @@ function resetAllForTesting(){
   location.reload();
 }
 
-// Zum Zurücksetzen für einen kompletten Test einfach in der Browser-Konsole ausführen:
-// resetAllForTesting();
+function resetWeaponsForTesting(){
+  // Nur Waffen zurücksetzen: nur die Pistole bleibt übrig. Gold, XP, Rüstungen und Quests bleiben erhalten.
+  localStorage.setItem("strikezoneWeapon","pistol");
+  localStorage.setItem("strikezoneOwned",JSON.stringify(["pistol"]));
+  location.reload();
+}
+
+function unlockAllForTesting(){
+  // Alles freischalten: alle Waffen + alle Rüstungen.
+  localStorage.setItem("strikezoneOwned",JSON.stringify(Object.keys(WEAPONS)));
+  localStorage.setItem("strikezoneWeapon","pistol");
+  localStorage.setItem("strikezoneXP",String(ARMORS[ARMORS.length-1].level));
+  localStorage.setItem("strikezoneArmor",ARMORS[ARMORS.length-1].id);
+  location.reload();
+}
+
+function give10000GoldForTesting(){
+  // Gold für Tests auf genau 10.000 setzen.
+  localStorage.setItem("strikezoneCoins","10000");
+  location.reload();
+}
+
+// Testfunktionen in der Browser-Konsole:
+// resetAllForTesting();          // nur Quests + Rüstungen zurücksetzen
+// resetWeaponsForTesting();      // nur Waffen zurücksetzen
+// unlockAllForTesting();         // alle Waffen + alle Rüstungen freischalten
+// give10000GoldForTesting();     // 10.000 Gold geben
 
 function currentWeapon(){return WEAPONS[selectedWeapon]||WEAPONS.pistol;}
 function renderShop(){
@@ -1152,7 +1178,6 @@ updateHUD();initAudio();shooterShot();
     while(e && !e.userData.hp)e=e.parent;
     if(e){
       e.userData.hp-=currentWeapon().damage;
-      completeQuest("shoot");
       lastPlayerHit=performance.now();hitSound();
       if(e.userData.hp<=0)killEnemy(e);
     }
